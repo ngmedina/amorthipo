@@ -1,0 +1,61 @@
+# Instalar y cargar el paquete knitr si no está instalado
+if (!require(knitr)) {
+  install.packages("knitr")
+  library(knitr)
+}
+
+# Función para crear la tabla de amortización
+crear_tabla_amortizacion <- function(principal, annual_interest_rate, years, amortizar, monto_amortizacion) {
+  # Calcular los parámetros necesarios
+  monthly_interest_rate <- annual_interest_rate / 12
+  num_payments <- years * 12
+  
+  # Calcular el pago mensual
+  monthly_payment <- principal * (monthly_interest_rate * (1 + monthly_interest_rate)^num_payments) / ((1 + monthly_interest_rate)^num_payments - 1)
+  
+  # Crear la tabla de amortización
+  amortization_schedule <- data.frame(
+    Month = 1:num_payments,
+    Payment = rep(monthly_payment, num_payments),
+    Interest = rep(NA, num_payments),
+    Principal = rep(NA, num_payments),
+    Balance = rep(NA, num_payments)
+  )
+  
+  # Rellenar la tabla de amortización
+  balance <- principal
+  for (i in 1:num_payments) {
+    interest_payment <- balance * monthly_interest_rate
+    principal_payment <- monthly_payment - interest_payment
+    balance <- balance - principal_payment
+    
+    # Aplicar amortización si corresponde
+    if (amortizar == "cuota" && balance <= monto_amortizacion) {
+      monthly_payment <- principal_payment + interest_payment
+    } else if (amortizar == "plazo" && balance <= monto_amortizacion) {
+      num_payments <- i
+      amortization_schedule <- amortization_schedule[1:i, ]
+      break
+    }
+    
+    amortization_schedule$Interest[i] <- interest_payment
+    amortization_schedule$Principal[i] <- principal_payment
+    amortization_schedule$Balance[i] <- balance
+  }
+  
+  # Imprimir la tabla de amortización en un formato amigable
+  kable(amortization_schedule, format = "markdown", col.names = c("Mes", "Pago", "Interés", "Principal", "Saldo"))
+  
+  # Guardar la tabla completa en un archivo CSV
+  write.csv(amortization_schedule, "amortization_schedule_frances.csv", row.names = FALSE)
+}
+
+# Definir los parámetros de la hipoteca
+principal <- 200000  # Monto del préstamo
+annual_interest_rate <- 0.05  # Tasa de interés anual
+years <- 30  # Número de años
+amortizar <- "cuota"  # Opción de amortización: "cuota" o "plazo"
+monto_amortizacion <- 50000  # Monto de amortización
+
+# Crear y mostrar la tabla de amortización
+crear_tabla_amortizacion(principal, annual_interest_rate, years, amortizar, monto_amortizacion)
